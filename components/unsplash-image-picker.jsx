@@ -20,13 +20,24 @@ export default function UnsplashImagePicker({ isOpen, onClose, onSelect }) {
   const searchImages = async (searchQuery) => {
     setLoading(true);
     try {
+      const encodedQuery = encodeURIComponent(searchQuery);
       const response = await fetch(
-        `https://api.unsplash.com/search/photos?query=${searchQuery}&per_page=12&client_id=${process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY}`
+        `https://api.unsplash.com/search/photos?query=${encodedQuery}&per_page=12&client_id=${process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY}`
       );
+      
+      // Validate response status
+      if (!response.ok) {
+        const errorBody = await response.text();
+        console.error(`Failed to fetch images: ${response.status}`, errorBody);
+        setImages([]);
+        return;
+      }
+      
       const data = await response.json();
       setImages(data.results || []);
     } catch (error) {
       console.error("Error fetching images:", error);
+      setImages([]);
     } finally {
       setLoading(false);
     }

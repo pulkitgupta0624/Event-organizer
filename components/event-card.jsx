@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { Calendar, MapPin, Users, Trash2, X, QrCode, Eye } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isValid, parseISO } from 'date-fns';
 import Image from 'next/image';
 import { getCategoryIcon, getCategoryLabel } from '@/lib/data';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,6 +18,31 @@ export default function EventCard({
     action = null, // "event" | "ticket" | null
     className = "",
 }) {
+    // Helper function to safely format dates
+    const formatDate = (dateValue, formatStr) => {
+        if (!dateValue) return "TBD";
+        try {
+            let parsedDate;
+            if (typeof dateValue === 'string') {
+                parsedDate = parseISO(dateValue);
+            } else if (typeof dateValue === 'number') {
+                parsedDate = new Date(dateValue);
+            } else {
+                parsedDate = dateValue;
+            }
+            if (!isValid(parsedDate)) return "TBD";
+            return format(parsedDate, formatStr);
+        } catch (error) {
+            console.error("Date formatting error:", error);
+            return "TBD";
+        }
+    }    };
+    // Build a safe, human-friendly location string
+    const getLocation = () => {
+        if (event?.locationType === "online") return "Online Event";
+        const parts = [event?.city, event?.state || event?.country].filter(Boolean);
+        return parts.length ? parts.join(', ') : (event?.city || "Location unknown");
+    };
     if (variant === "list") {
         return (
             <Card
@@ -50,13 +75,11 @@ export default function EventCard({
                             {event.title}
                         </h3>
                         <p className="text-xs text-muted-foreground mb-1">
-                            {format(event.startDate, "EEE, dd MMM, HH:mm")}
+                            {formatDate(event.startDate, "EEE, dd MMM, HH:mm")}
                         </p>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
                             <MapPin className="w-3 h-3" />
-                            <span className="line-clamp-1">
-                                {event.locationType === "online" ? "Online Event" : event.city}
-                            </span>
+                            <span className="line-clamp-1">{getLocation()}</span>
                         </div>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Users className="w-3 h-3" />
@@ -110,15 +133,11 @@ export default function EventCard({
                 <div className="space-y-2 text-sm text-muted-foreground">
                     <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
-                        <span>{format(event.startDate, "PPP")}</span>
+                        <span>{formatDate(event.startDate, "PPP")}</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4" />
-                        <span className="line-clamp-1">
-                            {event.locationType === "online"
-                                ? "Online Event"
-                                : `${event.city}, ${event.state || event.country}`}
-                        </span>
+                        <span className="line-clamp-1">{getLocation()}</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <Users className="w-4 h-4" />

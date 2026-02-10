@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { QrCode, Loader2 } from "lucide-react";
 import { useConvexMutation } from "@/hooks/use-convex-query";
 import { api } from "@/convex/_generated/api";
@@ -22,7 +22,7 @@ export default function QRScannerModal({ isOpen, onClose }) {
     api.registrations.checkInAttendee
   );
 
-  const handleCheckIn = async (qrCode) => {
+  const handleCheckIn = useCallback(async (qrCode) => {
     try {
       const result = await checkInAttendee({ qrCode });
 
@@ -33,9 +33,8 @@ export default function QRScannerModal({ isOpen, onClose }) {
         toast.error(result.message || "Check-in failed");
       }
     } catch (error) {
-      toast.error(error.message || "Invalid QR code");
-    }
-  };
+      // Error toast already shown by useConvexMutation hook
+    }  }, [checkInAttendee, onClose]);
 
   // Initialize QR Scanner
   useEffect(() => {
@@ -50,8 +49,10 @@ export default function QRScannerModal({ isOpen, onClose }) {
 
         // Check camera permissions first
         try {
-          await navigator.mediaDevices.getUserMedia({ video: true });
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
           console.log("Camera permission granted");
+          // Stop all tracks immediately to release the camera
+          stream.getTracks().forEach(track => track.stop());
         } catch (permError) {
           console.error("Camera permission denied:", permError);
           setError("Camera permission denied. Please enable camera access.");
@@ -89,11 +90,10 @@ export default function QRScannerModal({ isOpen, onClose }) {
 
         const onScanError = (error) => {
           // Only log actual errors, not "no QR code found" messages
-          if (error && !error.includes("NotFoundException")) {
+          if (error && typeof error === "string" && !error.includes("NotFoundException")) {
             console.debug("Scan error:", error);
           }
         };
-
         scanner.render(onScanSuccess, onScanError);
         setScannerReady(true);
         setError(null);
@@ -115,7 +115,7 @@ export default function QRScannerModal({ isOpen, onClose }) {
       }
       setScannerReady(false);
     };
-  }, [isOpen]);
+  }, [isOpen, handleCheckIn]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

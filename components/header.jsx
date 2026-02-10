@@ -41,8 +41,7 @@ export default function Header() {
             />
             {/* <span className="text-purple-500 text-2xl font-bold">spott*</span> */}
             {hasPro && (
-              <Badge className="bg-linear-to-r from-pink-500 to-orange-500 gap-1 text-white ml-3">
-                <Crown className="w-3 h-3" />
+              <Badge className="bg-gradient-to-r from-pink-500 to-orange-500 gap-1 text-white ml-3">                <Crown className="w-3 h-3" />
                 Pro
               </Badge>
             )}
@@ -81,7 +80,6 @@ export default function Header() {
 
               {/* User Button */}
               <UserButton
-                afterSignOutUrl="/"
                 appearance={{
                   elements: {
                     avatarBox: "w-9 h-9",

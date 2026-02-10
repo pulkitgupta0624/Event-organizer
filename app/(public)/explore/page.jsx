@@ -105,7 +105,7 @@ const ExplorePage = () => {
                             {featuredEvents.map((event) => (
                                 <CarouselItem key={event._id}>
                                     <div
-                                        className="relative h-120 rounded-xl overflow-hidden cursor-pointer"
+                                        className="relative h-96 rounded-xl overflow-hidden cursor-pointer"
                                         onClick={() => handleEventClick(event.slug)}
                                     >
                                         {event.coverImage ? (

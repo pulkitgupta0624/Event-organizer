@@ -71,13 +71,12 @@ export const getCurrentUser = query({
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      return null;
     }
 
     return user;
   },
 });
-
 // Complete onboarding (attendee preferences)
 export const completeOnboarding = mutation({
   args: {
@@ -86,15 +85,49 @@ export const completeOnboarding = mutation({
       state: v.optional(v.string()), // Added state field
       country: v.string(),
     }),
-    interests: v.array(v.string()), // Min 3 categories
+    interests: v.array(v.string(), { minLength: 3 }), // Min 3 categories
   },
   handler: async (ctx, args) => {
     const user = await ctx.runQuery(internal.users.getCurrentUser);
+
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
+
+    // Extra guard: ensure client didn't bypass validation — require at least 3 interests
+    if (!Array.isArray(args.interests) || args.interests.length < 3) {
+      throw new Error("Please select at least 3 interests");
+    }
 
     await ctx.db.patch(user._id, {
       location: args.location,
       interests: args.interests,
       hasCompletedOnboarding: true,
+      updatedAt: Date.now(),
+    });
+
+    return user._id;
+  },
+});
+
+// Update only the user's location (does not toggle onboarding)
+export const updateLocation = mutation({
+  args: {
+    location: v.object({
+      city: v.string(),
+      state: v.optional(v.string()),
+      country: v.string(),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.runQuery(internal.users.getCurrentUser);
+
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
+
+    await ctx.db.patch(user._id, {
+      location: args.location,
       updatedAt: Date.now(),
     });
 

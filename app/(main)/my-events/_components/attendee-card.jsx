@@ -21,10 +21,9 @@ export function AttendeeCard({ registration }) {
         toast.error(result.message);
       }
     } catch (error) {
-      toast.error(error.message || "Failed to check in attendee");
+      // Error toast already shown by useConvexMutation hook
     }
   };
-
   return (
     <Card className="py-0">
       <CardContent className="p-4 flex items-start gap-4">
@@ -50,7 +49,9 @@ export function AttendeeCard({ registration }) {
               {registration.checkedIn ? "⏰ Checked in" : "📅 Registered"}{" "}
               {registration.checkedIn && registration.checkedInAt
                 ? format(registration.checkedInAt, "PPp")
-                : format(registration.registeredAt, "PPp")}
+                : registration.registeredAt
+                ? format(registration.registeredAt, "PPp")
+                : "Unknown date"}
             </span>
             <span className="font-mono">QR: {registration.qrCode}</span>
           </div>

@@ -40,17 +40,17 @@ export const getEventsByLocation = query({
       .filter((q) => q.gte(q.field("startDate"), now))
       .collect();
 
-    // Filter by city or state
+    // Apply city and state filters independently so both can be used together
     if (args.city) {
       events = events.filter(
-        (e) => e.city.toLowerCase() === args.city.toLowerCase()
-      );
-    } else if (args.state) {
-      events = events.filter(
-        (e) => e.state?.toLowerCase() === args.state.toLowerCase()
+        (e) => e.city?.toLowerCase() === args.city.toLowerCase()
       );
     }
-
+    if (args.state) {
+      events = events.filter(
+        (e) => e.state?.toLowerCase() === args.state?.toLowerCase()
+      );
+    }
     return events.slice(0, args.limit ?? 4);
   },
 });

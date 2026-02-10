@@ -10,6 +10,7 @@ export function useStoreUser() {
   // When this state is set we know the server
   // has stored the user.
   const [userId, setUserId] = useState(null);
+  const [error, setError] = useState(null);
   const storeUser = useMutation(api.users.store);
   // Call the `storeUser` mutation function to store
   // the current user in the `users` table and return the `Id` value.
@@ -22,11 +23,21 @@ export function useStoreUser() {
     // Recall that `storeUser` gets the user information via the `auth`
     // object on the server. You don't need to pass anything manually here.
     async function createUser() {
-      const id = await storeUser();
-      setUserId(id);
+      try {
+        const id = await storeUser();
+        setUserId(id);
+        setError(null);
+      } catch (err) {
+        console.error("Failed to store user:", err);
+        setError(err);
+        setUserId(null);
+      }
     }
     createUser();
-    return () => setUserId(null);
+    return () => {
+      setUserId(null);
+      setError(null);
+    };
     // Make sure the effect reruns if the user logs in with
     // a different identity
   }, [isAuthenticated, storeUser, user?.id]);
@@ -34,5 +45,6 @@ export function useStoreUser() {
   return {
     isLoading: isLoading || (isAuthenticated && userId === null),
     isAuthenticated: isAuthenticated && userId !== null,
+    error,
   };
 }

@@ -23,29 +23,34 @@ export const createEvent = mutation({
     ticketPrice: v.optional(v.number()),
     coverImage: v.optional(v.string()),
     themeColor: v.optional(v.string()),
-    hasPro: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     try {
       const user = await ctx.runQuery(internal.users.getCurrentUser);
 
-      // SERVER-SIDE CHECK: Verify event limit for Free users
-      if (!hasPro && user.freeEventsCreated >= 1) {
+      // Verify user exists
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
+      // SERVER-SIDE CHECK: Verify event limit for Free users using user record
+      const isProUser = user.isPro || false;
+      if (!isProUser && user.freeEventsCreated >= 1) {
         throw new Error(
           "Free event limit reached. Please upgrade to Pro to create more events."
         );
       }
 
-      // SERVER-SIDE CHECK: Verify custom color usage
+      // SERVER-SIDE CHECK: Verify custom color usage using user record
       const defaultColor = "#1e3a8a";
-      if (!hasPro && args.themeColor && args.themeColor !== defaultColor) {
+      if (!isProUser && args.themeColor && args.themeColor !== defaultColor) {
         throw new Error(
           "Custom theme colors are a Pro feature. Please upgrade to Pro."
         );
       }
 
-      // Force default color for Free users
-      const themeColor = hasPro ? args.themeColor : defaultColor;
+      // Force default color for Free users based on server-side Pro status
+      const themeColor = isProUser ? args.themeColor : defaultColor;
 
       // Generate slug from title
       const slug = args.title
@@ -65,10 +70,12 @@ export const createEvent = mutation({
         updatedAt: Date.now(),
       });
 
-      // Update user's free event count
-      await ctx.db.patch(user._id, {
-        freeEventsCreated: user.freeEventsCreated + 1,
-      });
+      // Update user's free event count only for non-Pro users
+      if (!isProUser) {
+        await ctx.db.patch(user._id, {
+          freeEventsCreated: (user.freeEventsCreated || 0) + 1,
+        });
+      }
 
       return eventId;
     } catch (error) {
@@ -95,6 +102,11 @@ export const getMyEvents = query({
   handler: async (ctx) => {
     const user = await ctx.runQuery(internal.users.getCurrentUser);
 
+    // Ensure user is authenticated before accessing user._id
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
+
     const events = await ctx.db
       .query("events")
       .withIndex("by_organizer", (q) => q.eq("organizerId", user._id))
@@ -103,7 +115,7 @@ export const getMyEvents = query({
 
     return events;
   },
-});
+}); 
 
 // Delete event
 export const deleteEvent = mutation({
@@ -134,13 +146,12 @@ export const deleteEvent = mutation({
     // Delete the event
     await ctx.db.delete(args.eventId);
 
-    // Update free event count if it was a free event
-    if (event.ticketType === "free" && user.freeEventsCreated > 0) {
+    // Update free event count
+    if (user.freeEventsCreated > 0) {
       await ctx.db.patch(user._id, {
         freeEventsCreated: user.freeEventsCreated - 1,
       });
     }
-
     return { success: true };
   },
 });

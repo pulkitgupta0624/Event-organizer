@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 import { Search, MapPin, Calendar, Loader2 } from "lucide-react";
 import { State, City } from "country-state-city";
 import { format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { useConvexQuery, useConvexMutation } from "@/hooks/use-convex-query";
 import { api } from "@/convex/_generated/api";
 import { createLocationSlug } from "@/lib/location-utils";
 import { getCategoryIcon } from "@/lib/data";
+import { toast } from "sonner";
 
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +33,7 @@ export default function SearchLocationBar() {
     api.users.getCurrentUser
   );
   const { mutate: updateLocation } = useConvexMutation(
-    api.users.completeOnboarding
+    api.users.updateLocation
   );
 
   const { data: searchResults, isLoading: searchLoading } = useConvexQuery(
@@ -88,16 +90,31 @@ export default function SearchLocationBar() {
 
   const handleLocationSelect = async (city, state) => {
     try {
-      if (currentUser?.interests && currentUser?.location) {
-        await updateLocation({
-          location: { city, state, country: "India" },
-          interests: currentUser.interests,
-        });
+      // If user is logged in, attempt to update their location
+      if (currentUser) {
+        try {
+          // Build update payload with location and interests if available
+          const updatePayload = {
+            location: { city, state, country: "India" },
+          };
+
+          await updateLocation(updatePayload);
+          toast.success("Location updated successfully");
+        } catch (updateError) {
+          console.error("Failed to update location:", updateError);
+          toast.error("Failed to save location preference, but navigating anyway");
+        }
+      } else {
+        // User not logged in
+        toast.info("Sign in to save your location preference");
       }
+      
+      // Navigate regardless of update success
       const slug = createLocationSlug(city, state);
       router.push(`/explore/${slug}`);
     } catch (error) {
-      console.error("Failed to update location:", error);
+      console.error("Navigation error:", error);
+      toast.error("Failed to navigate to location");
     }
   };
 
@@ -129,7 +146,7 @@ export default function SearchLocationBar() {
 
         {/* Search Results */}
         {showSearchResults && (
-          <div className="absolute top-full mt-2 w-96 bg-background border rounded-lg shadow-lg z-50 max-h-100 overflow-y-auto">
+          <div className="absolute top-full mt-2 w-96 bg-background border rounded-lg shadow-lg z-50 max-h-[400px] overflow-y-auto">
             {searchLoading ? (
               <div className="p-4 flex items-center justify-center">
                 <Loader2 className="w-5 h-5 animate-spin text-purple-500" />
@@ -156,7 +173,11 @@ export default function SearchLocationBar() {
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
-                            {format(event.startDate, "MMM dd")}
+                            {formatInTimeZone(
+                              new Date(event.startDate),
+                              event.timezone || "UTC",
+                              "MMM dd"
+                            )}
                           </span>
                           <span className="flex items-center gap-1">
                             <MapPin className="w-3 h-3" />

@@ -63,7 +63,7 @@ export default function EventDetailPage() {
       try {
         await navigator.share({
           title: event.title,
-          text: event.description.slice(0, 100) + "...",
+          text: (event.description || "").slice(0, 100) + "...",
           url: url,
         });
       } catch (error) {
@@ -75,7 +75,6 @@ export default function EventDetailPage() {
       toast.success("Link copied to clipboard!");
     }
   };
-
   const handleRegister = () => {
     if (!user) {
       toast.error("Please sign in to register");
@@ -131,7 +130,7 @@ export default function EventDetailPage() {
 
         {/* Hero Image */}
         {event.coverImage && (
-          <div className="relative h-100 rounded-2xl overflow-hidden mb-6">
+          <div className="relative h-[400px] rounded-2xl overflow-hidden mb-6">
             <Image
               src={event.coverImage}
               alt={event.title}

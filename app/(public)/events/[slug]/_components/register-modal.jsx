@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Ticket, CheckCircle } from "lucide-react";
 import { useConvexMutation } from "@/hooks/use-convex-query";
@@ -28,6 +28,14 @@ export default function RegisterModal({ event, isOpen, onClose }) {
     user?.primaryEmailAddress?.emailAddress || ""
   );
   const [isSuccess, setIsSuccess] = useState(false);
+
+  // Sync name and email when user becomes available or changes
+  useEffect(() => {
+    if (user) {
+      setName(user.fullName || "");
+      setEmail(user.primaryEmailAddress?.emailAddress || "");
+    }
+  }, [user]);
 
   const { mutate: registerForEvent, isLoading } = useConvexMutation(
     api.registrations.registerForEvent

@@ -70,8 +70,32 @@ export default function EventDashboardPage() {
       toast.success("Event deleted successfully");
       router.push("/my-events");
     } catch (error) {
-      toast.error(error.message || "Failed to delete event");
+      // `useConvexMutation` already shows user-facing toasts for errors.
+      // Avoid duplicating notifications here; log for debugging instead.
+      console.error("Delete event failed:", error);
     }
+  };
+
+  const escapeCsvField = (value) => {
+    // Convert null/undefined to empty string
+    if (value == null) {
+      return "";
+    }
+
+    // Convert to string
+    let str = String(value);
+
+    // Prefix with single quote if starts with formula characters
+    if (/^[=@+\-]/.test(str)) {
+      str = "'" + str;
+    }
+
+    // Double any internal quotes and wrap in quotes if contains special chars
+    if (/[,"\n\r]/.test(str)) {
+      str = '"' + str.replace(/"/g, '""') + '"';
+    }
+
+    return str;
   };
 
   const handleExportCSV = () => {
@@ -90,12 +114,12 @@ export default function EventDashboardPage() {
         "QR Code",
       ],
       ...registrations.map((reg) => [
-        reg.attendeeName,
-        reg.attendeeEmail,
-        new Date(reg.registeredAt).toLocaleString(),
-        reg.checkedIn ? "Yes" : "No",
-        reg.checkedInAt ? new Date(reg.checkedInAt).toLocaleString() : "-",
-        reg.qrCode,
+        escapeCsvField(reg.attendeeName),
+        escapeCsvField(reg.attendeeEmail),
+        escapeCsvField(new Date(reg.registeredAt).toLocaleString()),
+        escapeCsvField(reg.checkedIn ? "Yes" : "No"),
+        escapeCsvField(reg.checkedInAt ? new Date(reg.checkedInAt).toLocaleString() : "-"),
+        escapeCsvField(reg.qrCode),
       ]),
     ]
       .map((row) => row.join(","))
@@ -107,6 +131,7 @@ export default function EventDashboardPage() {
     a.href = url;
     a.download = `${dashboardData?.event.title || "event"}_registrations.csv`;
     a.click();
+    window.URL.revokeObjectURL(url);
     toast.success("CSV exported successfully");
   };
 
@@ -156,7 +181,7 @@ export default function EventDashboardPage() {
         </div>
 
         {event.coverImage && (
-          <div className="relative h-87.5 rounded-2xl overflow-hidden mb-6">
+          <div className="relative h-[350px] rounded-2xl overflow-hidden mb-6">
             <Image
               src={event.coverImage}
               alt={event.title}

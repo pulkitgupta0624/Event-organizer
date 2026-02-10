@@ -17,14 +17,13 @@ export default function ExploreLayout({ children }) {
                 {!isMainExplore && (
                     <div className='mb-6'>
                         <Button
-                            varient="ghost"
+                            variant="ghost"
                             onClick={() => router.push("/explore")}
                             className="gap-2 -ml-2"
                         >
                             <ArrowLeft className="w-4 h-4" />
                             Back to Explore
-                        </Button>
-                    </div>
+                        </Button>                    </div>
                 )}
                 {children}
             </div>

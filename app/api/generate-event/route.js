@@ -55,16 +55,29 @@ Rules:
       cleanedText = cleanedText.replace(/```\n?/g, "");
     }
 
-    console.log(cleanedText);
+    // Parse the cleaned JSON response
+    let eventData;
+    try {
+      eventData = JSON.parse(cleanedText);
+    } catch (parseError) {
+      // FIX 1: Ensure this console.error is properly closed with });
+      console.error("Failed to parse AI response as JSON:", {
+        error: parseError.message,
+      }); 
 
-    const eventData = JSON.parse(cleanedText);
+      return NextResponse.json(
+        { error: "Failed to generate event: " + parseError.message },
+        { status: 400 }
+      );
+    }
 
     return NextResponse.json(eventData);
+    
   } catch (error) {
     console.error("Error generating event:", error);
     return NextResponse.json(
-      { error: "Failed to generate event" + error.message },
+      { error: "Failed to generate event " + error.message },
       { status: 500 }
     );
   }
-}
+} // FIX 2: Added missing closing brace for the function
